@@ -1,7 +1,7 @@
 # toktor
 
 ---
-[![Build Status](https://https://github.com/Hodkinson/toktor/workflows/Build/badge.svg)](https://github.com/Hodkinson/toktor/actions)
+[![Build Status](https://github.com/Hodkinson/toktor/actions/workflows/rust.yml/badge.svg)](https://github.com/Hodkinson/toktor/actions)
 
 ---
 
