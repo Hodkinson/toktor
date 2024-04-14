@@ -1,0 +1,19 @@
+[package]
+name = "toktor"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "A small tokio-based Actor framework"
+repository = "https://github.com/Hodkinson/toktor"
+readme = "README.md"
+keywords = ["tokio", "actor"]
+categories = ["concurrency"]
+
+[dependencies]
+thiserror = "1.0"
+tokio = { version = "1.37", features = ["sync", "rt"] }
+
+[dev-dependencies]
+tokio = { version = "1.37", features = ["time", "macros", "test-util"] }
+tokio-test = "0.4.4"
+
