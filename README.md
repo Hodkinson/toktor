@@ -1,5 +1,9 @@
 # toktor
-Simple rust actors
+
+---
+[![Build Status](https://https://github.com/Hodkinson/toktor/workflows/Build/badge.svg)](https://github.com/Hodkinson/toktor/actions)
+
+---
 
 A small Actor framework for use within tokio.
 
