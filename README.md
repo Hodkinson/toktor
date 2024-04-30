@@ -16,6 +16,9 @@ This was created to cater for a need in a project for allowing creation of compl
 structures that could be easily shutdown when required. For example in UIs, when a user
 closes a window, or in telephony when an internet call is dropped.
 
+## Minimum Supported Rust Version (MSRV)
+MSRV is 1.75
+
 ## License
 
 Licensed under either of

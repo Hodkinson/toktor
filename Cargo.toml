@@ -8,6 +8,7 @@ repository = "https://github.com/Hodkinson/toktor"
 readme = "README.md"
 keywords = ["tokio", "actor"]
 categories = ["concurrency"]
+rust-version = "1.75"
 
 [dependencies]
 thiserror = "1.0"
