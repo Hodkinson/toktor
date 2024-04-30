@@ -1,4 +1,3 @@
-
 //! # toktor
 //!
 //! A small Actor framework for use within tokio.
@@ -36,12 +35,7 @@
 //!
 mod actor;
 
-
-
-
-
-pub use crate::actor::Actor;
-pub use crate::actor::ActorHandle;
-pub use crate::actor::ActorContext;
 pub use crate::actor::spawn;
-
+pub use crate::actor::Actor;
+pub use crate::actor::ActorContext;
+pub use crate::actor::ActorHandle;

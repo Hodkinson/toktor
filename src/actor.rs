@@ -2,11 +2,11 @@ const GRACEFUL: isize = 1;
 const HARD: isize = 2;
 
 use std::future::Future;
-use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicIsize, Ordering};
-use tokio::sync::{mpsc};
-use tokio::task::{AbortHandle, JoinSet};
+use std::sync::{Arc, Mutex};
 use thiserror::Error;
+use tokio::sync::mpsc;
+use tokio::task::{AbortHandle, JoinSet};
 
 /// An error returned from the [`ActorContext::spawn`] or [`ActorContext::spawn_child`]
 /// functions.
@@ -30,7 +30,7 @@ pub enum ActorError {
 ///
 /// [`ActorContext`]: ActorContext
 pub trait Actor<T> {
-    fn on_message(&mut self, ctx: &ActorContext, message: T) -> impl Future<Output=()> + Send;
+    fn on_message(&mut self, ctx: &ActorContext, message: T) -> impl Future<Output = ()> + Send;
 }
 
 /// Spawns an Actor, returning an [`ActorHandle`]
@@ -45,9 +45,10 @@ pub trait Actor<T> {
 ///
 /// [`ActorHandle`]: ActorHandle
 pub fn spawn<A, T>(queue_size: usize, mut actor: A) -> ActorHandle<T>
-    where A: Actor<T>,
-          A: Send + Sync + 'static,
-          T: Send + Sync + 'static,
+where
+    A: Actor<T>,
+    A: Send + Sync + 'static,
+    T: Send + Sync + 'static,
 {
     assert!(queue_size > 0, "spawning actor requires queue_size > 0");
 
@@ -67,18 +68,15 @@ pub fn spawn<A, T>(queue_size: usize, mut actor: A) -> ActorHandle<T>
                     GRACEFUL => rx.close(),
                     _ => {
                         rx.close();
-                        break
-                    },
+                        break;
+                    }
                 }
             }
         });
     }
 
     ActorHandle {
-        inner: Arc::new(InnerActorHandle {
-            queue,
-            context,
-        })
+        inner: Arc::new(InnerActorHandle { queue, context }),
     }
 }
 
@@ -133,13 +131,13 @@ impl ActorContext {
                 cancelled: AtomicIsize::new(0),
                 children: Mutex::new(Some(vec![])),
                 shutting_down_children: Mutex::new(Some(vec![])),
-            })
+            }),
         }
     }
 
     fn from(other: &ActorContext) -> Self {
         ActorContext {
-            inner: other.inner.clone()
+            inner: other.inner.clone(),
         }
     }
 
@@ -155,10 +153,10 @@ impl ActorContext {
     /// (either graceful or hard) already.
     ///
     pub fn spawn<F>(&self, task: F) -> Result<AbortHandle, ActorError>
-        where F: Future<Output = ()>,
-              F: Send + 'static
+    where
+        F: Future<Output = ()>,
+        F: Send + 'static,
     {
-
         let mut js = self.inner.join_set.lock().unwrap();
         if let Some(js) = js.as_mut() {
             Ok(js.spawn(task))
@@ -176,10 +174,16 @@ impl ActorContext {
     /// This function will return [`Err(ActorError::ShutDown)`] if this actor has been shutdown
     /// (either graceful or hard) already.
     ///
-    pub fn spawn_child<A, T>(&self, queue_size: usize, actor: A) -> Result<ActorHandle<T>, ActorError>
-        where A: Actor<T>,
-              A: Send + Sync + 'static,
-              T: Send + Sync + 'static, {
+    pub fn spawn_child<A, T>(
+        &self,
+        queue_size: usize,
+        actor: A,
+    ) -> Result<ActorHandle<T>, ActorError>
+    where
+        A: Actor<T>,
+        A: Send + Sync + 'static,
+        T: Send + Sync + 'static,
+    {
         let mut children = self.inner.children.lock().unwrap();
         if let Some(kids) = children.as_mut() {
             let handle = spawn(queue_size, actor);
@@ -208,8 +212,11 @@ impl ActorContext {
     ///
     pub fn graceful_shutdown(&self) {
         let inner = &self.inner;
-        if inner.cancelled.compare_exchange(0, GRACEFUL, Ordering::Release, Ordering::Relaxed).is_ok() {
-
+        if inner
+            .cancelled
+            .compare_exchange(0, GRACEFUL, Ordering::Release, Ordering::Relaxed)
+            .is_ok()
+        {
             let shutting_down_children = {
                 let mut children = inner.children.lock().unwrap();
                 let mut shutting_down_children = inner.shutting_down_children.lock().unwrap();
@@ -240,10 +247,18 @@ impl ActorContext {
     ///
     pub fn hard_shutdown(&self) {
         let inner = &self.inner;
-        if inner.cancelled.compare_exchange(0, HARD, Ordering::Release, Ordering::Relaxed).is_ok() {
+        if inner
+            .cancelled
+            .compare_exchange(0, HARD, Ordering::Release, Ordering::Relaxed)
+            .is_ok()
+        {
             inner.join_set.lock().unwrap().take();
             hard_shutdown_children(&inner.children);
-        } else if inner.cancelled.compare_exchange(GRACEFUL, HARD, Ordering::Release, Ordering::Relaxed).is_ok() {
+        } else if inner
+            .cancelled
+            .compare_exchange(GRACEFUL, HARD, Ordering::Release, Ordering::Relaxed)
+            .is_ok()
+        {
             inner.join_set.lock().unwrap().take();
             hard_shutdown_children(&inner.children);
             hard_shutdown_children(&inner.shutting_down_children);
@@ -304,6 +319,10 @@ impl<T: Send + Sync + 'static> ActorHandle<T> {
     /// (either graceful or hard) already.
     ///
     pub async fn send(&self, message: T) -> Result<(), ActorError> {
-        self.inner.queue.send(message).await.map_err(|_| ActorError::ShutDown)
+        self.inner
+            .queue
+            .send(message)
+            .await
+            .map_err(|_| ActorError::ShutDown)
     }
 }

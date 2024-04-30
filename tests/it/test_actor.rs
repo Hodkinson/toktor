@@ -1,15 +1,15 @@
+use crate::awaiting_actor::AwaitingActor;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
 use toktor::{Actor, ActorContext, ActorHandle};
-use crate::awaiting_actor::AwaitingActor;
 
 pub enum Action {
     GracefulShutdown,
     HardShutdown,
     SpawnChild(Arc<()>),
     Spawn(Arc<()>),
-    Num(usize)
+    Num(usize),
 }
 
 pub struct TestActor {
@@ -19,10 +19,7 @@ pub struct TestActor {
 
 impl TestActor {
     pub fn new(tx: mpsc::Sender<usize>) -> Self {
-        TestActor {
-            tx,
-            kids: vec![],
-        }
+        TestActor { tx, kids: vec![] }
     }
 }
 
@@ -39,7 +36,8 @@ impl Actor<Action> for TestActor {
                 ctx.spawn(async move {
                     let _refs = refs;
                     tokio::time::sleep(Duration::from_secs(u64::MAX)).await
-                }).expect("task");
+                })
+                .expect("task");
             }
             Action::Num(num) => {
                 let _ = self.tx.send(num).await;

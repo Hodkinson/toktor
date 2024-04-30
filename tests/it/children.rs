@@ -1,7 +1,7 @@
-use std::sync::Arc;
-use tokio::sync::mpsc;
 use crate::common::yield_task;
 use crate::test_actor::{Action, TestActor};
+use std::sync::Arc;
+use tokio::sync::mpsc;
 
 #[tokio::test]
 async fn actors_can_spawn_child_actors_and_shut_them_down() {

@@ -8,9 +8,7 @@ pub struct AwaitingActor {
 
 impl AwaitingActor {
     pub fn new(refs: Arc<()>) -> Self {
-        Self {
-            _refs: refs
-        }
+        Self { _refs: refs }
     }
 }
 

@@ -1,8 +1,8 @@
-use std::sync::Arc;
-use tokio::sync::mpsc;
 use crate::awaiting_actor::AwaitingActor;
 use crate::common::{read_totals, yield_task};
 use crate::test_actor::{Action, TestActor};
+use std::sync::Arc;
+use tokio::sync::mpsc;
 
 #[tokio::test]
 async fn actors_can_be_gracefully_shutdown() {
@@ -76,4 +76,3 @@ async fn dropping_the_handle_drops_the_actor() {
 
     assert_eq!(1, Arc::strong_count(&refs));
 }
-
