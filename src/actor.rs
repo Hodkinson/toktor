@@ -22,8 +22,9 @@ pub enum ActorError {
     ShutDown,
 }
 
-/// Handles a message.
+/// Provides actor functions.
 ///
+/// The `on_start` method is called once at startup, before any message are processed.
 /// The `on_message` method gives &mut access to self.
 ///
 /// In addition, a reference to this actor's [`ActorContext`] is provided.
@@ -31,7 +32,8 @@ pub enum ActorError {
 ///
 /// [`ActorContext`]: ActorContext
 pub trait Actor<T> {
-    fn on_message(&mut self, ctx: &ActorContext, message: T) -> impl Future<Output = ()> + Send;
+    fn on_start(&mut self, _ctx: &ActorContext) -> impl Future<Output=()> + Send { async {} }
+    fn on_message(&mut self, ctx: &ActorContext, message: T) -> impl Future<Output=()> + Send;
 }
 
 /// Spawns an Actor, returning an [`ActorHandle`]
@@ -46,10 +48,10 @@ pub trait Actor<T> {
 ///
 /// [`ActorHandle`]: ActorHandle
 pub fn spawn<A, T>(queue_size: usize, mut actor: A) -> ActorHandle<T>
-where
-    A: Actor<T>,
-    A: Send + Sync + 'static,
-    T: Send + Sync + 'static,
+    where
+        A: Actor<T>,
+        A: Send + Sync + 'static,
+        T: Send + Sync + 'static,
 {
     assert!(queue_size > 0, "spawning actor requires queue_size > 0");
 
@@ -62,6 +64,7 @@ where
 
         let c = ActorContext::from(&context);
         js.spawn(async move {
+            actor.on_start(&c).await;
             while let Some(message) = rx.recv().await {
                 actor.on_message(&c, message).await;
                 match c.inner.cancelled.load(Ordering::Acquire) {
@@ -163,9 +166,9 @@ impl ActorContext {
     /// (either graceful or hard) already.
     ///
     pub fn spawn<F>(&self, task: F) -> Result<AbortHandle, ActorError>
-    where
-        F: Future<Output = ()>,
-        F: Send + 'static,
+        where
+            F: Future<Output=()>,
+            F: Send + 'static,
     {
         let mut js = self.inner.join_set.lock().unwrap();
         if let Some(js) = js.as_mut() {
@@ -189,10 +192,10 @@ impl ActorContext {
         queue_size: usize,
         actor: A,
     ) -> Result<ActorHandle<T>, ActorError>
-    where
-        A: Actor<T>,
-        A: Send + Sync + 'static,
-        T: Send + Sync + 'static,
+        where
+            A: Actor<T>,
+            A: Send + Sync + 'static,
+            T: Send + Sync + 'static,
     {
         let mut children = self.inner.children.lock().unwrap();
         if let Some(kids) = children.as_mut() {
