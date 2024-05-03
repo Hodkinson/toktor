@@ -1,6 +1,7 @@
 const GRACEFUL: isize = 1;
 const HARD: isize = 2;
 
+use std::fmt::{Debug, Formatter};
 use std::future::Future;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use std::sync::{Arc, Mutex};
@@ -100,6 +101,15 @@ pub struct ActorHandle<T> {
 struct InnerActorHandle<T> {
     queue: mpsc::Sender<T>,
     context: ActorContext,
+}
+
+impl<T> Debug for ActorHandle<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ActorHandle")
+            .field("capacity", &self.inner.queue.capacity())
+            .field("cancelled", &self.inner.context.is_shutdown())
+            .finish()
+    }
 }
 
 /// A context actor, that can be used by the actor to spawn associated tasks, child actors, or
