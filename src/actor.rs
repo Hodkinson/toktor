@@ -32,26 +32,28 @@ pub enum ActorError {
 ///
 /// [`ActorContext`]: ActorContext
 pub trait Actor<T> {
-    fn on_start(&mut self, _ctx: &ActorContext) -> impl Future<Output=()> + Send { async {} }
-    fn on_message(&mut self, ctx: &ActorContext, message: T) -> impl Future<Output=()> + Send;
+    fn on_spawn(&mut self, _ctx: &ActorContext) -> impl Future<Output = ()> + Send {
+        async {}
+    }
+    fn on_message(&mut self, ctx: &ActorContext, message: T) -> impl Future<Output = ()> + Send;
 }
 
 /// Spawns an Actor, returning an [`ActorHandle`]
-/// that can be used to send messages, or shutdown the actor.
+/// that can be used to send messages, or shut down the actor.
 ///
 /// The actor will start running in the background immediately
 /// when this method is called.
 ///
 /// # Panics
 ///
-/// This method panics if called outside of a Tokio runtime.
+/// This method panics if called outside a Tokio runtime.
 ///
 /// [`ActorHandle`]: ActorHandle
 pub fn spawn<A, T>(queue_size: usize, mut actor: A) -> ActorHandle<T>
-    where
-        A: Actor<T>,
-        A: Send + Sync + 'static,
-        T: Send + Sync + 'static,
+where
+    A: Actor<T>,
+    A: Send + Sync + 'static,
+    T: Send + Sync + 'static,
 {
     assert!(queue_size > 0, "spawning actor requires queue_size > 0");
 
@@ -64,9 +66,11 @@ pub fn spawn<A, T>(queue_size: usize, mut actor: A) -> ActorHandle<T>
 
         let c = ActorContext::from(&context);
         js.spawn(async move {
-            actor.on_start(&c).await;
+            actor.on_spawn(&c).await;
+
             while let Some(message) = rx.recv().await {
                 actor.on_message(&c, message).await;
+
                 match c.inner.cancelled.load(Ordering::Acquire) {
                     0 => {}
                     GRACEFUL => rx.close(),
@@ -84,21 +88,28 @@ pub fn spawn<A, T>(queue_size: usize, mut actor: A) -> ActorHandle<T>
     }
 }
 
-/// A handle to an Actor, that can be used to send messages, or shutdown the actor.
+/// A handle to an Actor, that can be used to send messages, or shut down the actor.
 ///
 /// This handle is cheap to clone.
 ///
 /// Messages may be sent by calling [`ActorHandle::send`].
 ///
-/// The actor may be shutdown by calling the [`ActorHandle::graceful_shutdown`] or
+/// The actor may be shut down by calling the [`ActorHandle::graceful_shutdown`] or
 /// [`ActorHandle::hard_shutdown`] methods.
 ///
 /// Dropping the last `ActorHandle` for an actor will cause it to finish and be dropped.
 ///
 /// [`ActorHandle`]: ActorHandle
-#[derive(Clone)]
 pub struct ActorHandle<T> {
     inner: Arc<InnerActorHandle<T>>,
+}
+
+impl<T> Clone for ActorHandle<T> {
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+        }
+    }
 }
 
 struct InnerActorHandle<T> {
@@ -116,9 +127,9 @@ impl<T> Debug for ActorHandle<T> {
 }
 
 /// A context actor, that can be used by the actor to spawn associated tasks, child actors, or
-/// shutdown the actor.
+/// shut down the actor.
 ///
-/// The actor may be shutdown by calling the [`ActorContext::graceful_shutdown`] or
+/// The actor may be shut down by calling the [`ActorContext::graceful_shutdown`] or
 /// [`ActorContext::hard_shutdown`] methods.
 ///
 /// To spawn an associated task, call [`ActorContext::spawn`].
@@ -157,18 +168,19 @@ impl ActorContext {
     /// Spawns an associated task for this actor.
     ///
     /// An associated task is a standard tokio task that is tied to the lifetime of the actor.
-    /// The task will run as long as the actor is not **hard** shutdown, and the last actor handle
+    /// The task will run as long as the actor is not **hard** shut down, and the last actor handle
     /// has not been dropped.
     ///
     /// Note: calling [`ActorHandle::graceful_shutdown`] will not abort this associated task.
+    /// Call [`ActorHandle::hard_shutdown`] to abort this associated task.
     ///
-    /// This function will return [`Err(ActorError::ShutDown)`] if this actor has been shutdown
-    /// (either graceful or hard) already.
+    /// This function will return [`Err(ActorError::ShutDown)`] if this actor has been shut down
+    /// (either gracefully or hard) already.
     ///
     pub fn spawn<F>(&self, task: F) -> Result<AbortHandle, ActorError>
-        where
-            F: Future<Output=()>,
-            F: Send + 'static,
+    where
+        F: Future<Output = ()>,
+        F: Send + 'static,
     {
         let mut js = self.inner.join_set.lock().unwrap();
         if let Some(js) = js.as_mut() {
@@ -181,21 +193,21 @@ impl ActorContext {
     /// Spawns a child actor.
     ///
     /// A child actor is a self-contained actor, but has the actor for this [`ActorContext`]
-    /// as its parent. If the parent actor is shutdown, the child actor is also shutdown in the
+    /// as its parent. If the parent actor is shut down, the child actor is also shut down in the
     /// same manner.
     ///
-    /// This function will return [`Err(ActorError::ShutDown)`] if this actor has been shutdown
-    /// (either graceful or hard) already.
+    /// This function will return [`Err(ActorError::ShutDown)`] if this actor has been shut down
+    /// (either gracefully or hard) already.
     ///
     pub fn spawn_child<A, T>(
         &self,
         queue_size: usize,
         actor: A,
     ) -> Result<ActorHandle<T>, ActorError>
-        where
-            A: Actor<T>,
-            A: Send + Sync + 'static,
-            T: Send + Sync + 'static,
+    where
+        A: Actor<T>,
+        A: Send + Sync + 'static,
+        T: Send + Sync + 'static,
     {
         let mut children = self.inner.children.lock().unwrap();
         if let Some(kids) = children.as_mut() {
@@ -207,7 +219,7 @@ impl ActorContext {
         }
     }
 
-    /// Indicates if this actor has been shutdown.
+    /// Indicates if this actor has been shut down.
     ///
     pub fn is_shutdown(&self) -> bool {
         self.inner.cancelled.load(Ordering::Acquire) > 0
@@ -320,7 +332,7 @@ impl<T: Send + Sync + 'static> ActorHandle<T> {
         self.inner.context.hard_shutdown();
     }
 
-    /// Indicates if this actor has been shutdown.
+    /// Indicates if this actor has been shut down.
     ///
     pub fn is_shutdown(&self) -> bool {
         self.inner.context.is_shutdown()
@@ -328,8 +340,8 @@ impl<T: Send + Sync + 'static> ActorHandle<T> {
 
     /// Sends a message to the actor, waiting until there is capacity.
     ///
-    /// This function will return [`Err(ActorError::ShutDown)`] if this actor has been shutdown
-    /// (either graceful or hard) already.
+    /// This function will return [`Err(ActorError::ShutDown)`] if this actor has been shut down
+    /// (either gracefully or hard) already.
     ///
     pub async fn send(&self, message: T) -> Result<(), ActorError> {
         self.inner

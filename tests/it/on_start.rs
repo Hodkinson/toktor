@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::Instant;
 use toktor::{Actor, ActorContext};
@@ -15,7 +15,7 @@ impl StartingActor {
 }
 
 impl Actor<usize> for StartingActor {
-    async fn on_start(&mut self, ctx: &ActorContext) {
+    async fn on_spawn(&mut self, ctx: &ActorContext) {
         assert!(!ctx.is_shutdown());
         self.started.store(true, Ordering::Relaxed)
     }
@@ -24,7 +24,6 @@ impl Actor<usize> for StartingActor {
         tokio::time::sleep(Duration::from_secs(u64::MAX)).await
     }
 }
-
 
 #[tokio::test]
 async fn actors_are_informed_of_starting() {

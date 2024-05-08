@@ -5,11 +5,11 @@
 //! Features:
 //! * both graceful and hard shutdown options for actors
 //! * spawn child actors
-//! * spawn associated tasks, that may be shutdown with the actor
+//! * spawn associated tasks, that may be shut down with the actor
 //!
 //! This was created to cater for a need in a project for allowing creation of complex actor
 //! structures that could be easily shutdown when required. For example in UIs, when a user
-//! closes a window, in telephony when a call is dropped.
+//! closes a window, or in telephony when a call is dropped.
 //!
 //! # Example
 //!
@@ -38,4 +38,5 @@ mod actor;
 pub use crate::actor::spawn;
 pub use crate::actor::Actor;
 pub use crate::actor::ActorContext;
+pub use crate::actor::ActorError;
 pub use crate::actor::ActorHandle;
